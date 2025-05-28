@@ -1,6 +1,6 @@
-flask
-flask-cors
-openai
+fastapi
+uvicorn[standard]
+google-generativeai
 python-dotenv
 jinja2
 weasyprint
