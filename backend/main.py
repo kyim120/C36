@@ -1,113 +1,144 @@
-import os
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+import google.generativeai as genai
 from pathlib import Path
 import shutil
-import google.generativeai as genai
+import time
 
-app = FastAPI()
+# --- SETUP ---
 
-# Allow frontend (React) to communicate with backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Change to specific domain in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Directories
-BASE_DIR = Path(__file__).resolve().parent
-USER_DIR = BASE_DIR / "user_info"
-OUTPUT_DIR = BASE_DIR / "outputs"
-TEMPLATE_PATH = BASE_DIR / "templates" / "portfolio_template.html"
-
-# Gemini setup with environment variable for API key
-API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
-if not API_KEY:
-    raise RuntimeError("GOOGLE_GEMINI_API_KEY environment variable not set")
-
-genai.configure(api_key=API_KEY)
+# Gemini API key (replace with your actual key)
+genai.configure(api_key="AIzaSyBybuAb-cVllI7QrKXGVg8gmADNHIzzqY8")
 model = genai.GenerativeModel("gemini-1.5-flash")
 
+# Directories
+base_dir = Path(__file__).resolve().parent
+user_info_dir = base_dir / "user_info"
+outputs_dir = base_dir / "outputs"
+templates_dir = base_dir / "templates"
 
-@app.post("/generate-portfolio/")
-async def generate_portfolio(
-    bio: str = Form(...),
-    profile_pic: UploadFile = File(...),
-    resume: UploadFile = File(...)
-):
-    # Save uploaded files
-    USER_DIR.mkdir(parents=True, exist_ok=True)
-    profile_path = USER_DIR / "profile_pic.jpg"
-    resume_path = USER_DIR / "resume.pdf"
-    info_path = USER_DIR / "info.txt"
+# Required files
+info_path = user_info_dir / "info.txt"
+profile_pic_path = user_info_dir / "profile_pic.jpg"
+resume_path = user_info_dir / "resume.pdf"
+template_path = templates_dir / "portfolio_template.html"
 
-    with open(profile_path, "wb") as f:
-        shutil.copyfileobj(profile_pic.file, f)
+# --- VALIDATION ---
+for path, desc in [(info_path, "info.txt"), (profile_pic_path, "profile_pic.jpg"), (resume_path, "resume.pdf"), (template_path, "portfolio_template.html")]:
+    if not path.exists():
+        print(f"❌ {desc} not found in expected folder.")
+        exit(1)
 
-    with open(resume_path, "wb") as f:
-        shutil.copyfileobj(resume.file, f)
+print("✅ All required files found. Generating portfolio...")
 
-    info_path.write_text(bio.strip())
+# Read user bio and template
+user_bio = info_path.read_text()
+template_html = template_path.read_text()
 
-    if not TEMPLATE_PATH.exists():
-        raise HTTPException(status_code=500, detail="Template not found.")
-
-    template_html = TEMPLATE_PATH.read_text()
-
-    # Construct Gemini prompt
-    initial_prompt = f"""
+# --- INITIAL PROMPT with TEMPLATE example included ---
+initial_prompt = f"""
 You are a professional front-end engineer and creative designer working at a top AI tech company.
 
-Generate a cutting-edge personal portfolio website in a **single HTML file** using HTML5, embedded CSS and JavaScript (no external libraries), based on this bio:
+Your task is to create a **cutting-edge personal portfolio website** using **only one HTML file** with embedded <style> and <script> sections.
 
-{bio.strip()}
+## Purpose:
+This site is for a software engineer working in AI and futuristic technology. It should impress recruiters and clients from companies like Google, OpenAI, or Tesla.
 
-Visual: Dark theme, glassmorphism, responsive, animated, modern.
+## Required Technologies:
+- HTML5
+- CSS3 (embedded in <style>)
+- Vanilla JavaScript (embedded in <script>)
+- No external libraries or dependencies
 
---- TEMPLATE ---
+## Visual & UI/UX Aesthetic:
+- Dark theme
+- Futuristic or cyberpunk-inspired style
+- Neon-glow or glassmorphism effects
+- Smooth hover animations
+- Micro-interactions
+- Scroll-triggered transitions
+- Vibrant linear gradients and tech-like fonts
+- Soft shadows and rounded components
+
+## Required Sections:
+1. **Hero Section**:
+   - Name and professional title
+   - Call-to-action buttons (e.g., View Resume, Contact)
+
+2. **About Me**:
+   - Use profile photo (profile_pic.jpg)
+   - Use user bio from below
+
+3. **Education**:
+   - Institution, degree, years
+
+4. **Skills**:
+   - Grid, badges, or animated progress bars
+
+5. **Projects**:
+   - Title, description, tech used
+   - Display as cards or modals
+
+6. **Contact**:
+   - Social links (GitHub, LinkedIn, Twitter)
+   - Use recognizable icons (inline SVGs or CSS)
+
+7. **Resume Download**:
+   - Add button to download resume.pdf
+
+## Important:
+- Keep all code in a single .html file with proper formatting.
+- Do not embed image or PDF content.
+- Use clean, semantic HTML and modern CSS best practices.
+- The website must be fully responsive (mobile, tablet, desktop).
+
+## User Bio and Info:
+{user_bio}
+
+## Example Template:
+Below is a sample HTML template of the portfolio website I want you to improve upon. Use it as a starting point and generate a complete, responsive, futuristic, dark-themed portfolio website in a single HTML file.
+
+--- Start of example template ---
 {template_html}
---- END TEMPLATE ---
+--- End of example template ---
+
+In your next responses, please **do not send the template again**. Instead, use it as the basis for improvements and generate only the updated full HTML code.
 """
 
-    try:
-        response = model.generate_content(initial_prompt)
-        generated_html = response.text.strip()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+# --- CALL GEMINI FOR INITIAL GENERATION ---
+response = model.generate_content(initial_prompt)
+generated_html = response.text.strip()
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_file = OUTPUT_DIR / "index.html"
-    output_file.write_text(generated_html)
+# --- ITERATIVE REFINEMENT ---
+for i in range(1, 4):
+    print(f"🔄 Refining iteration {i}...")
+    refinement_prompt = f"""
+Please refine the following portfolio HTML code to make it look even more **modern, professional, clean, and futuristic**.
 
-    # Also save profile pic and resume
-    shutil.copy(profile_path, OUTPUT_DIR / "profile_pic.jpg")
-    shutil.copy(resume_path, OUTPUT_DIR / "resume.pdf")
+### Goals for refinement:
+- Improve layout and spacing
+- Enhance color palette and animations
+- Polish all UI/UX interactions
+- Keep all original sections and functionality
+- Stay within a single HTML file (no external files)
 
-    return JSONResponse({"message": "Portfolio generated successfully!", "url": "/download"})
+Return ONLY the complete updated HTML code.
 
+--- Start of HTML Code ---
+{generated_html}
+--- End of HTML Code ---
+"""
+    response = model.generate_content(refinement_prompt)
+    generated_html = response.text.strip()
+    time.sleep(1)  # Respect API limits
 
-@app.get("/download")
-def download_html():
-    html_file = OUTPUT_DIR / "index.html"
-    if html_file.exists():
-        return FileResponse(html_file, media_type="text/html", filename="index.html")
-    raise HTTPException(status_code=404, detail="File not found.")
+# --- OUTPUT FINAL VERSION ---
+if outputs_dir.exists():
+    shutil.rmtree(outputs_dir)
+outputs_dir.mkdir(parents=True)
 
+final_html_path = outputs_dir / "index.html"
+final_html_path.write_text(generated_html, encoding="utf-8")
+shutil.copy(profile_pic_path, outputs_dir / "profile_pic.jpg")
+shutil.copy(resume_path, outputs_dir / "resume.pdf")
 
-@app.get("/download/profile-pic")
-def download_profile_pic():
-    pic_file = OUTPUT_DIR / "profile_pic.jpg"
-    if pic_file.exists():
-        return FileResponse(pic_file, media_type="image/jpeg", filename="profile_pic.jpg")
-    raise HTTPException(status_code=404, detail="Profile picture not found.")
-
-
-@app.get("/download/resume")
-def download_resume():
-    resume_file = OUTPUT_DIR / "resume.pdf"
-    if resume_file.exists():
-        return FileResponse(resume_file, media_type="application/pdf", filename="resume.pdf")
-    raise HTTPException(status_code=404, detail="Resume not found.")
+print(f"✅ Final refined portfolio saved to: {final_html_path}")
+print("📁 Open outputs/index.html in your browser.")
