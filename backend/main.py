@@ -1,3 +1,13 @@
+import sys
+import site
+import os
+
+# Add the virtual environment's site-packages to sys.path to fix import error
+venv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv')
+site_packages = os.path.join(venv_path, 'lib', f'python{sys.version_info.major}.{sys.version_info.minor}', 'site-packages')
+if site_packages not in sys.path:
+    sys.path.insert(0, site_packages)
+
 import google.generativeai as genai
 from pathlib import Path
 import shutil

@@ -1,15 +1,14 @@
+import { cn } from "../lib/utils";
 
-import { cn } from "@/lib/utils";
+const StepIndicator = ({
+  currentStep,
+  totalSteps,
+  steps,
+}) => {
+  const progressWidth = `${((currentStep - 1) / (totalSteps - 1)) * 100}%`;
 
-interface StepIndicatorProps {
-  currentStep: number;
-  totalSteps: number;
-  steps: string[];
-}
-
-const StepIndicator = ({ currentStep, totalSteps, steps }: StepIndicatorProps) => {
   return (
-    <div className="w-full max-w-4xl mx-auto mb-8">
+     <div className="w-full max-w-4xl mx-auto mb-8">
       <div className="flex items-center justify-between relative">
         {/* Progress Line */}
         <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-700">

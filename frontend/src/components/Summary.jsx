@@ -9,13 +9,21 @@ interface SummaryProps {
   onPrevious: () => void;
 }
 
+const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Card className="glass-effect border-gray-600 p-6">
+    <h3 className="text-xl font-semibold text-white mb-4">{title}</h3>
+    {children}
+  </Card>
+);
+
 const Summary = ({ data, onPrevious }: SummaryProps) => {
   const { toast } = useToast();
 
   const handleGenerate = () => {
     toast({
       title: "🎉 Resume Generated Successfully!",
-      description: "Your AI-enhanced resume and portfolio are being created. This would typically integrate with your backend API.",
+      description:
+        "Your AI-enhanced resume and portfolio are being created. This would typically integrate with your backend API.",
     });
     console.log("Resume Data:", data);
   };
