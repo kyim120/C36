@@ -1,22 +1,17 @@
-import { ResumeData } from "@/types/resume";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../hooks/use-toast";
+import React from "react";
 
-interface SummaryProps {
-  data: ResumeData;
-  onPrevious: () => void;
-}
-
-const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const SectionCard = ({ title, children }) => (
   <Card className="glass-effect border-gray-600 p-6">
     <h3 className="text-xl font-semibold text-white mb-4">{title}</h3>
     {children}
   </Card>
 );
 
-const Summary = ({ data, onPrevious }: SummaryProps) => {
+const Summary = ({ data, onPrevious }) => {
   const { toast } = useToast();
 
   const handleGenerate = () => {

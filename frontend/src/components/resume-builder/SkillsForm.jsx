@@ -1,8 +1,8 @@
 import React, { useRef, useState } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Badge } from "../components/ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Badge } from "../ui/badge";
 
 const SkillsForm = ({ data, onUpdate, onNext, onPrevious }) => {
   const [skills, setSkills] = useState(data || []);

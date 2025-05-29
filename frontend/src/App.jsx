@@ -9,7 +9,7 @@ import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
+/* import Register from "./pages/Register"; */
 import ResumeBuilder from "./pages/ResumeBuilder";
 import ResumeTemplates from "./pages/ResumeTemplates";
 import PortfolioTemplates from "./pages/PortfolioTemplates";
@@ -29,7 +29,7 @@ const App = () => (
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* <Route path="/register" element={<Register />} /> */}
           <Route path="/resume-builder" element={<ResumeBuilder />} />
           <Route path="/resume-templates" element={<ResumeTemplates />} />
           <Route path="/portfolio-templates" element={<PortfolioTemplates />} />

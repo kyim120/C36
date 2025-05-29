@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { ArrowLeft, Star, Eye, Globe, Zap } from "lucide-react";
 
-const PortfolioTemplates = () => {
+const ResumeBuilder = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const navigate = useNavigate();
 
@@ -181,4 +181,4 @@ const PortfolioTemplates = () => {
   );
 };
 
-export default PortfolioTemplates;
+export default ResumeBuilder;

@@ -2,17 +2,17 @@
 import { useState } from "react";
 import { ResumeData, PersonalInfo, Education, Experience, Project, Achievement } from "../types/resume";
 import StepIndicator from "../components/StepIndicator";
-import PersonalInfoForm from "../components/forms/PersonalInfoForm";
-import EducationForm from "@..components/forms/EducationForm";
-import ExperienceForm from "../components/forms/ExperienceForm";
-import SkillsForm from "../components/forms/SkillsForm";
-import ProjectsForm from "../components/forms/ProjectsForm";
-import AchievementsForm from "../components/forms/CerttificationsForm";
-import Summary from "@/components/Summary";
+import PersonalInfoForm from "../components/resume-builder/PersonalInfoForm";
+import EducationForm from "../components/resume-builder/EducationForm";
+import ExperienceForm from "../components/resume-builder/ExperienceForm";
+import SkillsForm from "../components/resume-builder/SkillsForm";
+import ProjectsForm from "../components/resume-builder/ProjectsForm";
+import AchievementsForm from "../components/resume-builder/CertificationsForm";
+import Summary from "../components/Summary";
 
-const ResumeaTemplate = () => {
+const ResumeTemplate = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [resumeData, setResumeData] = useState<ResumeData>({
+  const [resumeData, setResumeData] = useState({
     personalInfo: {
       fullName: "",
       email: "",
@@ -39,27 +39,27 @@ const ResumeaTemplate = () => {
     "Summary"
   ];
 
-  const updatePersonalInfo = (data: PersonalInfo) => {
+  const updatePersonalInfo = (data) => {
     setResumeData(prev => ({ ...prev, personalInfo: data }));
   };
 
-  const updateEducation = (data: Education[]) => {
+  const updateEducation = (data) => {
     setResumeData(prev => ({ ...prev, education: data }));
   };
 
-  const updateExperience = (data: Experience[]) => {
+  const updateExperience = (data) => {
     setResumeData(prev => ({ ...prev, experience: data }));
   };
 
-  const updateSkills = (data: string[]) => {
+  const updateSkills = (data) => {
     setResumeData(prev => ({ ...prev, skills: data }));
   };
 
-  const updateProjects = (data: Project[]) => {
+  const updateProjects = (data) => {
     setResumeData(prev => ({ ...prev, projects: data }));
   };
 
-  const updateAchievements = (data: Achievement[]) => {
+  const updateAchievements = (data) => {
     setResumeData(prev => ({ ...prev, achievements: data }));
   };
 

@@ -1,6 +1,18 @@
 import sys
 import site
 import os
+import logging
+from pathlib import Path
+import shutil
+import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Add the virtual environment's site-packages to sys.path to fix import error
 venv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv')
@@ -8,15 +20,19 @@ site_packages = os.path.join(venv_path, 'lib', f'python{sys.version_info.major}.
 if site_packages not in sys.path:
     sys.path.insert(0, site_packages)
 
-import google.generativeai as genai
-from pathlib import Path
-import shutil
-import time
+try:
+    import google.generativeai as genai
+except ImportError as e:
+    logger.error(f"Failed to import google.generativeai: {e}")
+    sys.exit(1)
 
-# --- SETUP ---
+# Gemini API key from environment variable
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    logger.error("GEMINI_API_KEY environment variable not set.")
+    sys.exit(1)
 
-# Gemini API key (replace with your actual key)
-genai.configure(api_key="AIzaSyBybuAb-cVllI7QrKXGVg8gmADNHIzzqY8")
+genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Directories
@@ -31,20 +47,22 @@ profile_pic_path = user_info_dir / "profile_pic.jpg"
 resume_path = user_info_dir / "resume.pdf"
 template_path = templates_dir / "portfolio_template.html"
 
-# --- VALIDATION ---
-for path, desc in [(info_path, "info.txt"), (profile_pic_path, "profile_pic.jpg"), (resume_path, "resume.pdf"), (template_path, "portfolio_template.html")]:
-    if not path.exists():
-        print(f"❌ {desc} not found in expected folder.")
-        exit(1)
+def validate_required_files():
+    for path, desc in [(info_path, "info.txt"), (profile_pic_path, "profile_pic.jpg"), (resume_path, "resume.pdf"), (template_path, "portfolio_template.html")]:
+        if not path.exists():
+            logger.error(f"❌ {desc} not found in expected folder.")
+            sys.exit(1)
+    logger.info("✅ All required files found. Generating portfolio...")
 
-print("✅ All required files found. Generating portfolio...")
+def read_file_text(path):
+    try:
+        return path.read_text()
+    except Exception as e:
+        logger.error(f"Failed to read {path}: {e}")
+        sys.exit(1)
 
-# Read user bio and template
-user_bio = info_path.read_text()
-template_html = template_path.read_text()
-
-# --- INITIAL PROMPT with TEMPLATE example included ---
-initial_prompt = f"""
+def generate_portfolio_html(user_bio, template_html):
+    initial_prompt = f"""
 You are a professional front-end engineer and creative designer working at a top AI tech company.
 
 Your task is to create a **cutting-edge personal portfolio website** using **only one HTML file** with embedded <style> and <script> sections.
@@ -112,15 +130,17 @@ Below is a sample HTML template of the portfolio website I want you to improve u
 
 In your next responses, please **do not send the template again**. Instead, use it as the basis for improvements and generate only the updated full HTML code.
 """
+    try:
+        response = model.generate_content(initial_prompt)
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Failed to generate initial portfolio HTML: {e}")
+        sys.exit(1)
 
-# --- CALL GEMINI FOR INITIAL GENERATION ---
-response = model.generate_content(initial_prompt)
-generated_html = response.text.strip()
-
-# --- ITERATIVE REFINEMENT ---
-for i in range(1, 4):
-    print(f"🔄 Refining iteration {i}...")
-    refinement_prompt = f"""
+def refine_portfolio_html(generated_html):
+    for i in range(1, 4):
+        logger.info(f"🔄 Refining iteration {i}...")
+        refinement_prompt = f"""
 Please refine the following portfolio HTML code to make it look even more **modern, professional, clean, and futuristic**.
 
 ### Goals for refinement:
@@ -136,19 +156,37 @@ Return ONLY the complete updated HTML code.
 {generated_html}
 --- End of HTML Code ---
 """
-    response = model.generate_content(refinement_prompt)
-    generated_html = response.text.strip()
-    time.sleep(1)  # Respect API limits
+        try:
+            response = model.generate_content(refinement_prompt)
+            generated_html = response.text.strip()
+            time.sleep(1)  # Respect API limits
+        except Exception as e:
+            logger.error(f"Failed to refine portfolio HTML on iteration {i}: {e}")
+            sys.exit(1)
+    return generated_html
 
-# --- OUTPUT FINAL VERSION ---
-if outputs_dir.exists():
-    shutil.rmtree(outputs_dir)
-outputs_dir.mkdir(parents=True)
+def main():
+    validate_required_files()
+    user_bio = read_file_text(info_path)
+    template_html = read_file_text(template_path)
+    generated_html = generate_portfolio_html(user_bio, template_html)
+    refined_html = refine_portfolio_html(generated_html)
 
-final_html_path = outputs_dir / "index.html"
-final_html_path.write_text(generated_html, encoding="utf-8")
-shutil.copy(profile_pic_path, outputs_dir / "profile_pic.jpg")
-shutil.copy(resume_path, outputs_dir / "resume.pdf")
+    if outputs_dir.exists():
+        shutil.rmtree(outputs_dir)
+    outputs_dir.mkdir(parents=True)
 
-print(f"✅ Final refined portfolio saved to: {final_html_path}")
-print("📁 Open outputs/index.html in your browser.")
+    final_html_path = outputs_dir / "index.html"
+    try:
+        final_html_path.write_text(refined_html, encoding="utf-8")
+        shutil.copy(profile_pic_path, outputs_dir / "profile_pic.jpg")
+        shutil.copy(resume_path, outputs_dir / "resume.pdf")
+    except Exception as e:
+        logger.error(f"Failed to write output files: {e}")
+        sys.exit(1)
+
+    logger.info(f"✅ Final refined portfolio saved to: {final_html_path}")
+    logger.info("📁 Open outputs/index.html in your browser.")
+
+if __name__ == "__main__":
+    main()
